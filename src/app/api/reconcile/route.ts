@@ -12,53 +12,94 @@ export const maxDuration = 60; // extraction can take a few seconds
 const MAX_TEXT_CHARS = 10_000;
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 
-const RequestSchema = z.object({
-  emailText: z.string().min(1).max(MAX_TEXT_CHARS),
+// Session rows ingested in the browser ride along with the check, since the
+// server keeps no state. includeBuiltin=false leaves out the demo CSVs.
+const ExtraPoSchema = z.object({
+  po_number: z.string().min(1),
+  supplier: z.string().default(""),
+  sku: z.string().default(""),
+  description: z.string().default(""),
+  qty: z.number(),
+  unit: z.string().min(1),
+  unit_price_usd: z.number(),
+  due_date: z.string().min(1),
+  run_id: z.string().default(""),
+});
+const ExtraRunSchema = z.object({
+  run_id: z.string().min(1),
+  line: z.string().default(""),
+  product: z.string().default(""),
+  start_date: z.string().min(1),
+  sku_needed: z.string().default(""),
 });
 
-// Accepts either JSON { emailText } or multipart form data with a `file`
-// (.txt, .csv, .eml, .xlsx, .xls, .pdf). Returns the text or PDF to extract.
+const RequestSchema = z.object({
+  emailText: z.string().min(1).max(MAX_TEXT_CHARS),
+  includeBuiltin: z.boolean().default(true),
+  extraPos: z.array(ExtraPoSchema).default([]),
+  extraRuns: z.array(ExtraRunSchema).default([]),
+});
+
+type ExtraRows = {
+  includeBuiltin: boolean;
+  extraPos: z.infer<typeof ExtraPoSchema>[];
+  extraRuns: z.infer<typeof ExtraRunSchema>[];
+};
+const NO_EXTRAS: ExtraRows = { includeBuiltin: true, extraPos: [], extraRuns: [] };
+
+// Accepts either JSON { emailText, includeBuiltin?, extraPos?, extraRuns? }
+// or multipart form data with a `file` (.txt, .csv, .eml, .xlsx, .xls, .pdf).
 async function readInput(
   request: Request
-): Promise<{ text?: string; pdfBase64?: string; error?: string }> {
+): Promise<{ text?: string; pdfBase64?: string; extras: ExtraRows; error?: string }> {
   const contentType = request.headers.get("content-type") ?? "";
 
   if (!contentType.includes("multipart/form-data")) {
     try {
-      const body = await request.json();
-      return { text: RequestSchema.parse(body).emailText };
+      const body = RequestSchema.parse(await request.json());
+      return {
+        text: body.emailText,
+        extras: {
+          includeBuiltin: body.includeBuiltin,
+          extraPos: body.extraPos,
+          extraRuns: body.extraRuns,
+        },
+      };
     } catch {
-      return { error: "Send JSON like { emailText: string } with 1 to 10,000 characters, or upload a file." };
+      return {
+        extras: NO_EXTRAS,
+        error: "Send JSON like { emailText: string } with 1 to 10,000 characters, or upload a file.",
+      };
     }
   }
 
   const form = await request.formData();
   const file = form.get("file");
   if (!(file instanceof File) || file.size === 0) {
-    return { error: "Attach one non-empty file under the field name 'file'." };
+    return { extras: NO_EXTRAS, error: "Attach one non-empty file under the field name 'file'." };
   }
   if (file.size > MAX_FILE_BYTES) {
-    return { error: "File too large. Keep attachments under 5 MB." };
+    return { extras: NO_EXTRAS, error: "File too large. Keep attachments under 5 MB." };
   }
 
   const name = file.name.toLowerCase();
   if (name.endsWith(".pdf")) {
     const bytes = Buffer.from(await file.arrayBuffer());
-    return { pdfBase64: bytes.toString("base64") };
+    return { pdfBase64: bytes.toString("base64"), extras: NO_EXTRAS };
   }
   if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
     const workbook = XLSX.read(await file.arrayBuffer());
     const text = workbook.SheetNames.map(
       (sheet) => `Sheet: ${sheet}\n${XLSX.utils.sheet_to_csv(workbook.Sheets[sheet])}`
     ).join("\n\n");
-    return { text: text.slice(0, MAX_TEXT_CHARS) };
+    return { text: text.slice(0, MAX_TEXT_CHARS), extras: NO_EXTRAS };
   }
   // .txt, .csv, .eml and anything else text-like
   const text = (await file.text()).slice(0, MAX_TEXT_CHARS);
   if (text.trim().length === 0) {
-    return { error: "That file has no readable text." };
+    return { extras: NO_EXTRAS, error: "That file has no readable text." };
   }
-  return { text };
+  return { text, extras: NO_EXTRAS };
 }
 
 export async function POST(request: Request) {
@@ -74,7 +115,10 @@ export async function POST(request: Request) {
     } else {
       extraction = await extractConfirmation(input.text!);
     }
-    const report = reconcile(extraction, loadPos(), loadSchedule());
+    const { includeBuiltin, extraPos, extraRuns } = input.extras;
+    const pos = [...(includeBuiltin ? loadPos() : []), ...extraPos];
+    const schedule = [...(includeBuiltin ? loadSchedule() : []), ...extraRuns];
+    const report = reconcile(extraction, pos, schedule);
     return NextResponse.json(report);
   } catch (error) {
     if (error instanceof Anthropic.AuthenticationError) {
