@@ -365,7 +365,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
   const emailBoxSeverity = selectedEmailId ? emailResults[selectedEmailId] : undefined;
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl gap-6 px-6 py-8">
+    <main className="mx-auto flex w-full max-w-[96rem] gap-6 px-6 py-8">
       <div className="min-w-0 flex-1">
       <header>
         <h1 className="text-2xl font-bold">Confirmation Check</h1>
@@ -611,11 +611,11 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
       </section>
       )}
 
-      <div className="mt-6 space-y-6">
-          <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+          <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Open purchase orders</h2>
             <div className="mt-3 max-h-80 overflow-y-auto [scrollbar-gutter:stable]">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     <th className="pb-2 pr-2">PO</th>
@@ -652,10 +652,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             </div>
           </section>
 
-          <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+          <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Production schedule</h2>
             <div className="mt-3 max-h-80 overflow-y-auto [scrollbar-gutter:stable]">
-              <table className="w-full text-sm">
+              <table className="w-full text-xs">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
                     <th className="pb-2 pr-2">Run</th>
@@ -672,10 +672,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
                         run.run_id === matchedRunId && severity ? ROW_STYLES[severity] : ""
                       }`}
                     >
-                      <td className="py-2 pr-2 font-medium">{run.run_id}</td>
-                      <td className="py-2 pr-2">{run.line}</td>
-                      <td className="py-2 pr-2">{run.product}</td>
-                      <td className="py-2 whitespace-nowrap">{run.start_date}</td>
+                      <td className="whitespace-nowrap py-2 pr-2 font-medium">{run.run_id}</td>
+                      <td className="whitespace-nowrap py-2 pr-2">{run.line}</td>
+                      <td className="whitespace-nowrap py-2 pr-2">{run.product}</td>
+                      <td className="whitespace-nowrap py-2">{run.start_date}</td>
                     </tr>
                   ))}
                   {visibleRuns.length === 0 && (
@@ -692,7 +692,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
         </div>
       </div>
 
-      <aside className="w-56 shrink-0">
+      <aside className="w-44 shrink-0">
         <div className="sticky top-8 flex flex-col gap-3">
           <div className="mt-8 flex items-center justify-end gap-4">
             <ThemeToggle />
