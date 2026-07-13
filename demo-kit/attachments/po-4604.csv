@@ -1,0 +1,2 @@
+po_number,supplier,sku,description,qty,unit,unit_price_usd,due_date,run_id
+PO-4604,CanCo Printworks,CAN-12-LEMON,12oz printed can Lemon Shandy,150000,cans,0.088,2026-08-25,RUN-201
