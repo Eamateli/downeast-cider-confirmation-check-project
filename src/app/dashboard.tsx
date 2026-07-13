@@ -377,6 +377,43 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             ariaLabel="Toggle test data"
           />
           <ThemeToggle />
+          {inbox.status === "connected" ? (
+            <span className="flex items-center gap-2 rounded-lg border border-green-400 px-3 py-1.5 text-sm font-medium text-green-700 dark:border-green-700 dark:text-green-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              Google connected
+            </span>
+          ) : inbox.status === "unconfigured" || inbox.status === "loading" ? (
+            <button
+              disabled
+              title="Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local first (docs/GOOGLE-SETUP.md)"
+              className="cursor-not-allowed rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white opacity-40"
+            >
+              Connect to Google
+            </button>
+          ) : (
+            <a
+              href="/api/google/auth"
+              className="rounded-lg bg-indigo-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+            >
+              Connect to Google
+            </a>
+          )}
+          <input
+            ref={uploadInput}
+            type="file"
+            accept=".txt,.csv,.pdf,.xlsx,.xls"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) uploadDocument(file);
+            }}
+          />
+          <button
+            onClick={() => uploadInput.current?.click()}
+            className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Upload document
+          </button>
         </div>
       </header>
 
@@ -526,18 +563,12 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
           </p>
         )}
         {inbox.status === "disconnected" && (
-          <div className="mt-3">
-            <a
-              href="/api/google/auth"
-              className="inline-block rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500"
-            >
-              Connect to Google
-            </a>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              Reads emails under your &quot;suppliers&quot; label and can send a short
-              confirmation reply. Nothing is sent without the auto-send toggle or the button.
-            </p>
-          </div>
+          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
+            Not connected. Use the Connect to Google button at the top right. It
+            reads emails under your &quot;suppliers&quot; label and can send a short
+            confirmation reply; nothing is sent without the auto-send toggle or
+            the button.
+          </p>
         )}
         {inbox.status === "error" && (
           <p className="mt-3 text-sm text-red-600 dark:text-red-400">{inbox.message}</p>
@@ -619,70 +650,60 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
               </div>
             )}
 
-            <div className="border-t border-slate-200 pt-4 dark:border-slate-800">
-              <div className="flex flex-wrap items-center gap-3">
-                <h3 className="text-sm font-semibold">Documents</h3>
-                <input
-                  ref={uploadInput}
-                  type="file"
-                  accept=".txt,.csv,.pdf,.xlsx,.xls"
-                  className="hidden"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) uploadDocument(file);
-                  }}
-                />
-                <button
-                  onClick={() => uploadInput.current?.click()}
-                  className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                >
-                  Upload document
-                </button>
-                <span className="text-xs text-slate-500 dark:text-slate-400">
-                  PO lists and production schedules (.csv, .xlsx, .pdf). Email
-                  attachments are read automatically. Everything lives in this
-                  browser tab and is gone on refresh.
-                </span>
-              </div>
-              {docs.length > 0 && (
-                <ul className="mt-3 space-y-2">
-                  {docs.map((doc) => (
-                    <li
-                      key={doc.id}
-                      className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
-                    >
-                      <span>
-                        {doc.url ? (
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
-                          >
-                            {doc.name}
-                          </a>
-                        ) : (
-                          <span className="font-medium">{doc.name}</span>
-                        )}
-                        <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                          {doc.poCount} PO row{doc.poCount === 1 ? "" : "s"}, {doc.runCount} run
-                          {doc.runCount === 1 ? "" : "s"}
-                          {doc.id.startsWith("gmail-") && " (from email)"}
-                        </span>
-                      </span>
-                      <button
-                        onClick={() => removeDoc(doc.id)}
-                        className="text-xs text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
-                      >
-                        Remove
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
           </div>
         )}
+
+        <div className="mt-4 border-t border-slate-200 pt-4 dark:border-slate-800">
+          <div className="flex flex-wrap items-center gap-3">
+            <h3 className="text-sm font-semibold">Documents</h3>
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              Upload PO lists and production schedules (.csv, .xlsx, .pdf) with
+              the top-right button. Email attachments are read automatically.
+              Everything lives in this browser tab and is gone on refresh.
+            </span>
+          </div>
+          {ingestStatus && inbox.status !== "connected" && (
+            <p className="mt-2 text-sm italic text-slate-500 dark:text-slate-400">{ingestStatus}</p>
+          )}
+          {docs.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">No documents yet.</p>
+          ) : (
+            <ul className="mt-3 space-y-2">
+              {docs.map((doc) => (
+                <li
+                  key={doc.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm dark:border-slate-800"
+                >
+                  <span>
+                    {doc.url ? (
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+                      >
+                        {doc.name}
+                      </a>
+                    ) : (
+                      <span className="font-medium">{doc.name}</span>
+                    )}
+                    <span className="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                      {doc.poCount} PO row{doc.poCount === 1 ? "" : "s"}, {doc.runCount} run
+                      {doc.runCount === 1 ? "" : "s"}
+                      {doc.id.startsWith("gmail-") && " (from email)"}
+                    </span>
+                  </span>
+                  <button
+                    onClick={() => removeDoc(doc.id)}
+                    className="text-xs text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400"
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
 
       {(testMode || visiblePos.length > 0 || visibleRuns.length > 0) && (
