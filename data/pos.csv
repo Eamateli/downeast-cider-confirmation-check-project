@@ -1,0 +1,6 @@
+po_number,supplier,sku,description,qty,unit,unit_price_usd,due_date,run_id
+PO-4501,CanCo Printworks,CAN-12-ORIG,12oz printed can Original Blend,204000,cans,0.089,2026-07-24,RUN-88
+PO-4502,CanCo Printworks,CAN-12-BLUE,12oz printed can Blueberry Pie seasonal,102000,cans,0.094,2026-07-20,RUN-89
+PO-4503,LabelWorks NE,CTN-9PK-APL,9-pack carton Apple Mix Pack,45000,cartons,0.31,2026-07-28,RUN-90
+PO-4504,CanCo Printworks,CAN-12-PMANGO,12oz printed can Peach Mango,153000,cans,0.089,2026-08-03,RUN-91
+PO-4505,Juice Supply Co,ING-APL-CONC,Apple juice concentrate,18000,liters,1.12,2026-07-22,RUN-89
