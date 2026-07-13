@@ -158,7 +158,6 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
 
   const [inbox, setInbox] = useState<InboxState>({ status: "loading" });
   const [selectedEmailId, setSelectedEmailId] = useState("");
-  const [emailBoxText, setEmailBoxText] = useState("");
   const [emailResults, setEmailResults] = useState<Record<string, Finding["severity"]>>({});
   const [autoSend, setAutoSend] = useState(false);
   const [sentIds, setSentIds] = useState<string[]>([]);
@@ -347,22 +346,27 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
   function selectEmail(id: string) {
     setSelectedEmailId(id);
     const email = emails.find((e) => e.id === id);
-    setEmailBoxText(email?.bodyText ?? "");
+    setEmailText(email?.bodyText ?? "");
     reset();
   }
 
-  async function checkSelectedEmail() {
-    if (!selectedEmail || !emailBoxText.trim()) return;
-    const data = await runCheck(emailBoxText);
+  // One entry point for the Check button: a selected Gmail email records its
+  // result and may auto-send; plain pasted text just runs the check.
+  async function checkNow() {
+    if (!emailText.trim()) return;
+    const data = await runCheck(emailText);
     if (!data) return;
-    const result = worstSeverity(data.findings);
-    setEmailResults((map) => ({ ...map, [selectedEmail.id]: result }));
-    if (result === "ok" && autoSend && !sentIds.includes(selectedEmail.id)) {
-      await sendReply(selectedEmail.id);
+    if (!testMode && selectedEmail) {
+      const result = worstSeverity(data.findings);
+      setEmailResults((map) => ({ ...map, [selectedEmail.id]: result }));
+      if (result === "ok" && autoSend && !sentIds.includes(selectedEmail.id)) {
+        await sendReply(selectedEmail.id);
+      }
     }
   }
 
-  const emailBoxSeverity = selectedEmailId ? emailResults[selectedEmailId] : undefined;
+  const emailBoxSeverity =
+    !testMode && selectedEmailId ? emailResults[selectedEmailId] : undefined;
 
   return (
     <main className="mx-auto flex w-full max-w-[96rem] gap-6 px-6 py-8">
@@ -402,21 +406,103 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
               </div>
             )}
 
+            {!testMode && inbox.status === "connected" && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                  value={selectedEmailId}
+                  onChange={(event) => selectEmail(event.target.value)}
+                  className="min-w-56 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+                >
+                  <option value="">Select a supplier email...</option>
+                  {emails.map((email) => (
+                    <option key={email.id} value={email.id}>
+                      {emailResults[email.id] ? `${DOTS[emailResults[email.id]]} ` : ""}
+                      {email.shortLabel || email.subject || "(no subject)"}
+                      {email.isConfirmation ? "" : " (not a confirmation)"}
+                      {email.attachments.length > 0 ? ` [${email.attachments.length} att.]` : ""}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={loadInbox}
+                  className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                >
+                  Refresh
+                </button>
+              </div>
+            )}
+            {!testMode && selectedEmail && (
+              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                {selectedEmail.from} {selectedEmail.date && `on ${selectedEmail.date}`}
+              </p>
+            )}
+
             <textarea
               value={emailText}
               onChange={(event) => setEmailText(event.target.value)}
               placeholder="Paste the supplier email here..."
               rows={9}
-              className="mt-3 w-full rounded-lg border border-slate-300 bg-white p-3 font-mono text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
+              className={`mt-3 w-full rounded-lg border bg-white p-3 font-mono text-sm text-slate-800 focus:border-slate-500 focus:outline-none dark:bg-slate-950 dark:text-slate-200 ${
+                emailBoxSeverity
+                  ? BOX_STYLES[emailBoxSeverity]
+                  : "border-slate-300 dark:border-slate-700"
+              }`}
             />
 
-            <button
-              onClick={() => runCheck(emailText)}
-              disabled={loading || emailText.trim().length === 0}
-              className="mt-3 rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              {loading ? "Checking..." : "Check confirmation"}
-            </button>
+            <div className="mt-3 flex flex-wrap items-center gap-3">
+              <button
+                onClick={checkNow}
+                disabled={loading || emailText.trim().length === 0}
+                className="rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {loading ? "Checking..." : "Check confirmation"}
+              </button>
+              {!testMode && selectedEmail && sentIds.includes(selectedEmail.id) && (
+                <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-900/50 dark:text-green-300">
+                  Reply sent
+                </span>
+              )}
+              {!testMode &&
+                selectedEmail &&
+                !sentIds.includes(selectedEmail.id) &&
+                emailResults[selectedEmail.id] === "ok" && (
+                  <button
+                    onClick={() => sendReply(selectedEmail.id)}
+                    className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
+                  >
+                    Send reply
+                  </button>
+                )}
+              {!testMode && inbox.status === "connected" && (
+                <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+                  <input
+                    type="checkbox"
+                    checked={autoSend}
+                    onChange={(event) => setAutoSend(event.target.checked)}
+                    className="h-4 w-4"
+                  />
+                  Auto-send reply when green
+                </label>
+              )}
+            </div>
+
+            {!testMode && inbox.status === "connected" && (
+              <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                Emails under &quot;suppliers&quot;: {emails.length} total, {checkedCount} checked,{" "}
+                {emails.length - checkedCount} unchecked
+                {ingestStatus && <span className="ml-1 italic">{ingestStatus}</span>}
+              </p>
+            )}
+            {!testMode &&
+              (inbox.status === "disconnected" || inbox.status === "unconfigured") && (
+                <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                  Connect Google (top right) to pull supplier emails here, or paste
+                  a confirmation above.
+                </p>
+              )}
+            {!testMode && inbox.status === "error" && (
+              <p className="mt-3 text-xs text-red-600 dark:text-red-400">{inbox.message}</p>
+            )}
         </section>
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
@@ -475,141 +561,6 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
         </section>
       </div>
 
-      {!testMode && (
-      <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="flex items-center gap-2 font-semibold">
-            Supplier inbox (Gmail)
-            {inbox.status === "connected" && (
-              <span className="flex items-center gap-1 text-xs font-normal text-green-600 dark:text-green-400">
-                <span className="h-2.5 w-2.5 rounded-full bg-green-500" /> Connected
-              </span>
-            )}
-          </h2>
-          {inbox.status === "connected" && (
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                <input
-                  type="checkbox"
-                  checked={autoSend}
-                  onChange={(event) => setAutoSend(event.target.checked)}
-                  className="h-4 w-4"
-                />
-                Auto-send reply when everything is green
-              </label>
-              <button
-                onClick={loadInbox}
-                className="rounded-lg border border-slate-300 px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Refresh
-              </button>
-            </div>
-          )}
-        </div>
-
-        {inbox.status === "loading" && (
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Checking Google connection...</p>
-        )}
-        {inbox.status === "unconfigured" && (
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-            Google connection is not configured. Add GOOGLE_CLIENT_ID and
-            GOOGLE_CLIENT_SECRET to .env.local (setup steps in docs/GOOGLE-SETUP.md),
-            then restart the app.
-          </p>
-        )}
-        {inbox.status === "disconnected" && (
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">
-            Not connected. Use the Connect to Google button at the top right. It
-            reads emails under your &quot;suppliers&quot; label and can send a short
-            confirmation reply; nothing is sent without the auto-send toggle or
-            the button.
-          </p>
-        )}
-        {inbox.status === "error" && (
-          <p className="mt-3 text-sm text-red-600 dark:text-red-400">{inbox.message}</p>
-        )}
-
-        {inbox.status === "connected" && (
-          <div className="mt-4 space-y-4">
-            <p className="text-sm text-slate-600 dark:text-slate-400">
-              Emails under &quot;suppliers&quot;: <span className="font-semibold">{emails.length} total</span>
-              {", "}
-              <span className="font-semibold">{checkedCount} checked</span>
-              {", "}
-              <span className="font-semibold">{emails.length - checkedCount} unchecked</span>
-              {ingestStatus && <span className="ml-2 italic">{ingestStatus}</span>}
-            </p>
-
-            {emails.length === 0 ? (
-              <p className="text-sm text-slate-500 dark:text-slate-400">
-                No emails under the &quot;suppliers&quot; label yet. Label a supplier
-                email in Gmail and hit Refresh.
-              </p>
-            ) : (
-              <div className="flex flex-wrap items-center gap-3">
-                <select
-                  value={selectedEmailId}
-                  onChange={(event) => selectEmail(event.target.value)}
-                  className="min-w-64 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                >
-                  <option value="">Select an email...</option>
-                  {emails.map((email) => (
-                    <option key={email.id} value={email.id}>
-                      {emailResults[email.id] ? `${DOTS[emailResults[email.id]]} ` : ""}
-                      {email.shortLabel || email.subject || "(no subject)"}
-                      {email.isConfirmation ? "" : " (not a confirmation)"}
-                      {email.attachments.length > 0 ? ` [${email.attachments.length} att.]` : ""}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={checkSelectedEmail}
-                  disabled={loading || !selectedEmail || emailBoxText.trim().length === 0}
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  {loading ? "Checking..." : "Check email"}
-                </button>
-                {selectedEmail && sentIds.includes(selectedEmail.id) && (
-                  <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-800 dark:bg-green-900/50 dark:text-green-300">
-                    Reply sent
-                  </span>
-                )}
-                {selectedEmail &&
-                  !sentIds.includes(selectedEmail.id) &&
-                  emailResults[selectedEmail.id] === "ok" && (
-                    <button
-                      onClick={() => sendReply(selectedEmail.id)}
-                      className="rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-green-500"
-                    >
-                      Send reply
-                    </button>
-                  )}
-              </div>
-            )}
-
-            {selectedEmail && (
-              <div>
-                <p className="mb-1 text-xs text-slate-500 dark:text-slate-400">
-                  {selectedEmail.from} {selectedEmail.date && `on ${selectedEmail.date}`}
-                </p>
-                <textarea
-                  value={emailBoxText}
-                  onChange={(event) => setEmailBoxText(event.target.value)}
-                  rows={8}
-                  className={`w-full rounded-lg border-2 bg-white p-3 font-mono text-sm text-slate-800 focus:outline-none dark:bg-slate-950 dark:text-slate-200 ${
-                    emailBoxSeverity
-                      ? BOX_STYLES[emailBoxSeverity]
-                      : "border-slate-300 dark:border-slate-700"
-                  }`}
-                />
-              </div>
-            )}
-
-          </div>
-        )}
-
-      </section>
-      )}
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
@@ -698,7 +649,12 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             <ThemeToggle />
             <Slider
               on={testMode}
-              onToggle={() => setTestMode((v) => !v)}
+              onToggle={() => {
+                setTestMode((v) => !v);
+                setSelectedEmailId("");
+                setEmailText("");
+                reset();
+              }}
               left=""
               right="Test"
               ariaLabel="Toggle test data"
