@@ -615,11 +615,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
       </section>
       )}
 
-      {(testMode || visiblePos.length > 0 || visibleRuns.length > 0) && (
-        <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
           <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Open purchase orders</h2>
-            <div className="mt-3 max-h-72 overflow-y-auto">
+            <div className="mt-3 max-h-80 overflow-y-auto overflow-x-auto [scrollbar-gutter:stable]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -637,12 +636,12 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
                         po.po_number === matchedPoNumber && severity ? ROW_STYLES[severity] : ""
                       }`}
                     >
-                      <td className="py-2 pr-2 font-medium">{po.po_number}</td>
-                      <td className="py-2 pr-2">{po.description}</td>
-                      <td className="py-2 pr-2 whitespace-nowrap">
+                      <td className="whitespace-nowrap py-2 pr-2 font-medium">{po.po_number}</td>
+                      <td className="whitespace-nowrap py-2 pr-2">{po.description}</td>
+                      <td className="whitespace-nowrap py-2 pr-2">
                         {po.qty.toLocaleString("en-US")} {po.unit}
                       </td>
-                      <td className="py-2 whitespace-nowrap">{po.due_date}</td>
+                      <td className="whitespace-nowrap py-2">{po.due_date}</td>
                     </tr>
                   ))}
                   {visiblePos.length === 0 && (
@@ -659,7 +658,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
 
           <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Production schedule</h2>
-            <div className="mt-3 max-h-72 overflow-y-auto">
+            <div className="mt-3 max-h-80 overflow-y-auto [scrollbar-gutter:stable]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
@@ -695,12 +694,12 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             </div>
           </section>
         </div>
-      )}
       </div>
 
       <aside className="w-56 shrink-0">
         <div className="sticky top-8 flex flex-col gap-3">
-          <div className="flex justify-end">
+          <div className="mt-8 flex items-center justify-end gap-4">
+            <ThemeToggle />
             <Slider
               on={testMode}
               onToggle={() => setTestMode((v) => !v)}
@@ -708,9 +707,6 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
               right="Test"
               ariaLabel="Toggle test data"
             />
-          </div>
-          <div className="flex justify-end">
-            <ThemeToggle />
           </div>
 
           {testMode || inbox.status === "unconfigured" || inbox.status === "loading" ? (
