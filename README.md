@@ -25,7 +25,7 @@ Two deliberate human-in-the-loop boundaries: an unknown PO routes to a buyer ins
 
 ```
 git clone <this repo>
-cd downeast-confirmation-check
+cd <repo folder>
 npm install
 cp .env.example .env.local   # then paste your ANTHROPIC_API_KEY
 npm run dev
@@ -40,9 +40,10 @@ for the one-time Google Cloud setup), the dashboard can connect to Gmail, read
 emails under a "suppliers" label, triage them with the AI, read their
 attachments into the purchase order table, and send a confirmation reply for
 green results. Uploaded documents and Gmail data live only in the browser tab
-and are gone on refresh. The demo-kit folder contains four ready-made supplier
+and are gone on refresh. The demo-kit folder contains five ready-made supplier
 emails, their attachments, and three production schedule files to try the
-whole flow.
+whole flow, including one email that references a purchase order that does not
+exist, to show the tool routing to a human instead of guessing.
 
 ## Live demo
 
@@ -50,11 +51,11 @@ Coming after deploy. <!-- Founder: paste the Vercel URL here -->
 
 ## Trade-offs knowingly taken
 
-- Pasted text stands in for an email inbox webhook.
-- No PDF parsing or OCR, text only.
+- The Gmail connection is connect-and-check, not automatic on arrival. Test mode uses pasted text.
+- Attachments are read as whole documents, no OCR for scanned images.
 - No unit auto-conversion (pallets to cans needs a human).
 - No idempotency on re-sent confirmations, checking twice reports twice.
-- Reference data is two CSVs, not an ERP connection.
+- Ingested data is session-only, in the browser tab. The system of record stays your ERP, not this tool.
 
 ## What the next two weeks would add
 
