@@ -713,47 +713,60 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             <ThemeToggle />
           </div>
 
+          {testMode || inbox.status === "unconfigured" || inbox.status === "loading" ? (
+            <button
+              disabled
+              title={
+                testMode
+                  ? "Turn the Test slider off to connect Gmail"
+                  : "Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local first (docs/GOOGLE-SETUP.md)"
+              }
+              className="cursor-not-allowed rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white opacity-40"
+            >
+              Connect to Google
+            </button>
+          ) : inbox.status === "connected" ? (
+            <span className="flex items-center justify-center gap-2 rounded-lg border border-green-400 px-3 py-2 text-sm font-medium text-green-700 dark:border-green-700 dark:text-green-400">
+              <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+              Google connected
+            </span>
+          ) : (
+            <a
+              href="/api/google/auth"
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-500"
+            >
+              Connect to Google
+            </a>
+          )}
+
+          <input
+            ref={uploadInput}
+            type="file"
+            accept=".txt,.csv,.pdf,.xlsx,.xls"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) uploadDocument(file);
+            }}
+          />
+          <button
+            onClick={() => uploadInput.current?.click()}
+            disabled={testMode}
+            title={testMode ? "Turn the Test slider off to upload documents" : undefined}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+          >
+            Upload document
+          </button>
+
+          {testMode && (
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Turn the Test slider off to connect Gmail and upload your own
+              documents.
+            </p>
+          )}
+
           {!testMode && (
             <>
-              {inbox.status === "connected" ? (
-                <span className="flex items-center justify-center gap-2 rounded-lg border border-green-400 px-3 py-2 text-sm font-medium text-green-700 dark:border-green-700 dark:text-green-400">
-                  <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
-                  Google connected
-                </span>
-              ) : inbox.status === "unconfigured" || inbox.status === "loading" ? (
-                <button
-                  disabled
-                  title="Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env.local first (docs/GOOGLE-SETUP.md)"
-                  className="cursor-not-allowed rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white opacity-40"
-                >
-                  Connect to Google
-                </button>
-              ) : (
-                <a
-                  href="/api/google/auth"
-                  className="rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-500"
-                >
-                  Connect to Google
-                </a>
-              )}
-
-              <input
-                ref={uploadInput}
-                type="file"
-                accept=".txt,.csv,.pdf,.xlsx,.xls"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) uploadDocument(file);
-                }}
-              />
-              <button
-                onClick={() => uploadInput.current?.click()}
-                className="rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Upload document
-              </button>
-
               {ingestStatus && (
                 <p className="text-xs italic text-slate-500 dark:text-slate-400">{ingestStatus}</p>
               )}
