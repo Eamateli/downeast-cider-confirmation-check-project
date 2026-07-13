@@ -31,6 +31,50 @@ export const ExtractionSchema = z.object({
 });
 export type Extraction = z.infer<typeof ExtractionSchema>;
 
+// What the AI extracts from an uploaded or emailed document: purchase order
+// rows and/or production schedule rows. Nullable everywhere, same policy as
+// ExtractionSchema: never force the model to invent.
+export const IngestSchema = z.object({
+  doc_type: z.enum(["purchase_orders", "production_schedule", "mixed", "other"]),
+  pos: z.array(
+    z.object({
+      po_number: z.string().nullable(),
+      supplier: z.string().nullable(),
+      sku: z.string().nullable(),
+      description: z.string().nullable(),
+      qty: z.number().nullable(),
+      unit: z.string().nullable(),
+      unit_price_usd: z.number().nullable(),
+      due_date: z.string().nullable().describe("ISO date YYYY-MM-DD. Null if absent."),
+      run_id: z.string().nullable(),
+    })
+  ),
+  runs: z.array(
+    z.object({
+      run_id: z.string().nullable(),
+      line: z.string().nullable(),
+      product: z.string().nullable(),
+      start_date: z.string().nullable().describe("ISO date YYYY-MM-DD. Null if absent."),
+      sku_needed: z.string().nullable(),
+    })
+  ),
+});
+export type IngestResult = z.infer<typeof IngestSchema>;
+
+// Quick triage of inbox emails for the dashboard dropdown.
+export const EmailClassificationSchema = z.object({
+  emails: z.array(
+    z.object({
+      id: z.string(),
+      short_label: z.string().describe("At most three words describing the email."),
+      is_confirmation: z
+        .boolean()
+        .describe("True only for a real supplier order confirmation with usable content."),
+    })
+  ),
+});
+export type EmailClassification = z.infer<typeof EmailClassificationSchema>;
+
 // What reconcile.ts produces. Discriminate findings by `type`.
 export type FindingType =
   | "OK"
