@@ -383,23 +383,24 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
-        {testMode && (
-          <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+        <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Check a confirmation</h2>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {SAMPLES.map((sample) => (
-                <button
-                  key={sample.label}
-                  onClick={() => {
-                    setEmailText(sample.text);
-                    reset();
-                  }}
-                  className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                >
-                  {sample.label}
-                </button>
-              ))}
-            </div>
+            {testMode && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {SAMPLES.map((sample) => (
+                  <button
+                    key={sample.label}
+                    onClick={() => {
+                      setEmailText(sample.text);
+                      reset();
+                    }}
+                    className="rounded-full border border-slate-300 bg-white px-3 py-1 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                  >
+                    {sample.label}
+                  </button>
+                ))}
+              </div>
+            )}
 
             <textarea
               value={emailText}
@@ -416,14 +417,9 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             >
               {loading ? "Checking..." : "Check confirmation"}
             </button>
-          </section>
-        )}
+        </section>
 
-        <section
-          className={`rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900 ${
-            testMode ? "" : "lg:col-span-2"
-          }`}
-        >
+        <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="font-semibold">Result</h2>
 
           {!report && !error && !loading && (
@@ -615,10 +611,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
       </section>
       )}
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+      <div className="mt-6 space-y-6">
           <section className="rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
             <h2 className="font-semibold">Open purchase orders</h2>
-            <div className="mt-3 max-h-80 overflow-y-auto overflow-x-auto [scrollbar-gutter:stable]">
+            <div className="mt-3 max-h-80 overflow-y-auto [scrollbar-gutter:stable]">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
