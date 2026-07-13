@@ -170,11 +170,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
   const processedAttachments = useRef<Set<string>>(new Set());
   const uploadInput = useRef<HTMLInputElement>(null);
 
-  const visiblePos: (PoRow & { source?: string })[] = [...(testMode ? pos : []), ...sessionPos];
-  const visibleRuns: (ScheduleRow & { source?: string })[] = [
-    ...(testMode ? schedule : []),
-    ...sessionRuns,
-  ];
+  // Test mode shows only the built-in demo data; real mode shows only what
+  // came from your emails and uploads. No mixing.
+  const visiblePos: (PoRow & { source?: string })[] = testMode ? pos : sessionPos;
+  const visibleRuns: (ScheduleRow & { source?: string })[] = testMode ? schedule : sessionRuns;
 
   const matchedPoNumber = report?.matchedPo?.po_number ?? null;
   const matchedRunId = matchedPoNumber
@@ -207,8 +206,8 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
         body: JSON.stringify({
           emailText: text,
           includeBuiltin: testMode,
-          extraPos: sessionPos,
-          extraRuns: sessionRuns,
+          extraPos: testMode ? [] : sessionPos,
+          extraRuns: testMode ? [] : sessionRuns,
         }),
       });
       const data = await res.json();
@@ -271,7 +270,9 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             });
             if (res.ok) {
               const result: IngestResult = await res.json();
-              if (!cancelled) addDoc(source, att.filename, null, result);
+              const hasRows =
+                usablePos(result, "probe").length > 0 || usableRuns(result, "probe").length > 0;
+              if (!cancelled && hasRows) addDoc(source, att.filename, null, result);
             }
           } catch {
             // skip this attachment, keep going
@@ -306,6 +307,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
   }
 
   async function uploadDocument(file: File) {
+    if (testMode) return; // uploads belong to real mode only
     setIngestStatus(`Reading ${file.name}...`);
     try {
       const form = new FormData();
@@ -314,6 +316,10 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Could not read that document.");
+      } else if (usablePos(data, "probe").length === 0 && usableRuns(data, "probe").length === 0) {
+        setError(
+          `No purchase orders or production runs found in ${file.name}. It was not added.`
+        );
       } else {
         addDoc(`upload-${Date.now()}`, file.name, URL.createObjectURL(file), data);
       }
@@ -377,7 +383,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             ariaLabel="Toggle test data"
           />
           <ThemeToggle />
-          {inbox.status === "connected" ? (
+          {!testMode && (inbox.status === "connected" ? (
             <span className="flex items-center gap-2 rounded-lg border border-green-400 px-3 py-1.5 text-sm font-medium text-green-700 dark:border-green-700 dark:text-green-400">
               <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
               Google connected
@@ -397,23 +403,27 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
             >
               Connect to Google
             </a>
+          ))}
+          {!testMode && (
+            <>
+              <input
+                ref={uploadInput}
+                type="file"
+                accept=".txt,.csv,.pdf,.xlsx,.xls"
+                className="hidden"
+                onChange={(event) => {
+                  const file = event.target.files?.[0];
+                  if (file) uploadDocument(file);
+                }}
+              />
+              <button
+                onClick={() => uploadInput.current?.click()}
+                className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Upload document
+              </button>
+            </>
           )}
-          <input
-            ref={uploadInput}
-            type="file"
-            accept=".txt,.csv,.pdf,.xlsx,.xls"
-            className="hidden"
-            onChange={(event) => {
-              const file = event.target.files?.[0];
-              if (file) uploadDocument(file);
-            }}
-          />
-          <button
-            onClick={() => uploadInput.current?.click()}
-            className="rounded-lg border border-slate-300 px-4 py-1.5 text-sm text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-          >
-            Upload document
-          </button>
         </div>
       </header>
 
@@ -521,6 +531,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
         </section>
       </div>
 
+      {!testMode && (
       <section className="mt-6 rounded-lg border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h2 className="flex items-center gap-2 font-semibold">
@@ -705,6 +716,7 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
           )}
         </div>
       </section>
+      )}
 
       {(testMode || visiblePos.length > 0 || visibleRuns.length > 0) && (
         <div className="mt-6 grid gap-6 lg:grid-cols-2">
