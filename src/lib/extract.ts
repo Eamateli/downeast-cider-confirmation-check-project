@@ -11,13 +11,15 @@ Never guess a value that is not present: use null. Do not convert units.
 Report quantities in the unit the supplier used. Dates become YYYY-MM-DD;
 the current year is 2026 if the email omits the year.`;
 
-export async function extractConfirmation(emailText: string): Promise<Extraction> {
+type UserContent = Anthropic.MessageParam["content"];
+
+async function runExtraction(content: UserContent): Promise<Extraction> {
   const call = () =>
     client.messages.parse({
       model: MODEL,
       max_tokens: 16000,
       system: SYSTEM,
-      messages: [{ role: "user", content: emailText }],
+      messages: [{ role: "user", content }],
       output_config: { format: zodOutputFormat(ExtractionSchema) },
     });
 
@@ -27,4 +29,19 @@ export async function extractConfirmation(emailText: string): Promise<Extraction
     throw new Error("Extraction failed: model output did not match schema.");
   }
   return response.parsed_output;
+}
+
+export async function extractConfirmation(emailText: string): Promise<Extraction> {
+  return runExtraction(emailText);
+}
+
+// PDFs go to Claude as-is; the API reads them natively, so no OCR dependency.
+export async function extractConfirmationFromPdf(pdfBase64: string): Promise<Extraction> {
+  return runExtraction([
+    {
+      type: "document",
+      source: { type: "base64", media_type: "application/pdf", data: pdfBase64 },
+    },
+    { type: "text", text: "Extract the supplier order confirmation from this document." },
+  ]);
 }
