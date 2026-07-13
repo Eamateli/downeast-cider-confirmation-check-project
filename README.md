@@ -33,6 +33,17 @@ npm run dev
 
 Open http://localhost:3000 and click any sample button.
 
+## Optional: Gmail connection
+
+With `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set (see docs/GOOGLE-SETUP.md
+for the one-time Google Cloud setup), the dashboard can connect to Gmail, read
+emails under a "suppliers" label, triage them with the AI, read their
+attachments into the purchase order table, and send a confirmation reply for
+green results. Uploaded documents and Gmail data live only in the browser tab
+and are gone on refresh. The demo-kit folder contains four ready-made supplier
+emails, their attachments, and three production schedule files to try the
+whole flow.
+
 ## Live demo
 
 Coming after deploy. <!-- Founder: paste the Vercel URL here -->

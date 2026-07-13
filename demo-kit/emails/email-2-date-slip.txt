@@ -1,0 +1,13 @@
+Send with attachment: attachments/po-4602.csv
+Subject: RE: PO-4602 - schedule update
+---
+Hi Dana,
+
+Quick update from our production scheduler: the line had an unplanned
+maintenance window, so your 90,000 cans on PO-4602 are now slotted to
+ship August 19, 2026 instead of the original date. Quantity and
+pricing ($0.093/can) unchanged. Apologies for the shuffle.
+
+Cheers,
+Marco
+CanCo Printworks - Customer Service

@@ -1,0 +1,2 @@
+po_number,supplier,sku,description,qty,unit,unit_price_usd,due_date,run_id
+PO-4602,CanCo Printworks,CAN-12-GINGER,12oz printed can Ginger Cider,90000,cans,0.093,2026-08-12,RUN-202
