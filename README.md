@@ -1,66 +1,79 @@
 # Confirmation Check
 
-Supplier order confirmation reconciliation for Downeast Cider's printed cans and labels.
+**The problem is about can supplies. This app reads supplier emails to prevent production line shortages.**
 
-## The problem
+Suppliers email us to confirm when our printed cans and cartons will arrive. A delay or a short quantity is easy to miss when it is buried in a long email, and we only notice when a production line has nothing to run. This app reads each confirmation, compares it to what we ordered and when we plan to make it, and tells us in plain colours whether anything is wrong.
 
-Downeast buys printed 12oz cans and 9-pack cartons from packaging suppliers, and the seasonal rotation means frequent new printed-can SKUs, each with its own PO and deadline. Suppliers send confirmations and change notices as emails, where a slipped ship date or a short quantity sits buried in paragraph three. Today a buyer eyeballs those emails against a PO spreadsheet, and a missed slip costs an idle canning line, expedite fees, or a stockout on a launch SKU.
+## Where this fits in the bigger picture
 
-Stated assumptions: long lead times and truckload minimums on printed cans, confirmations arrive as free-form email text, and the buyer's reference data lives in two small tables (open POs and the production schedule).
+This is one slice of a larger supply-chain and manufacturing system. It handles the **Raw Materials and Packaging** corner: checking supplier confirmations for cans, glass, labels, and ingredients. The same idea can be reused across the other areas.
 
-## What this slice does
+![Where this slice fits in the bigger system](docs/architecture.png)
 
-Paste a supplier confirmation email and the tool tells you what the supplier actually committed to, how that differs from the PO, and which production run is now at risk. One input (email text), one transformation (AI extraction followed by a deterministic diff), one output (an exception report with green, amber, and red cards). Five sample emails are built in, including one designed to fail gracefully.
+## Reading the results
 
-![Screenshot](docs/screenshot.png)
-<!-- Founder: save a screenshot of the app as docs/screenshot.png -->
+Every check gives one of three colours:
+
+- 🟢 **Green**: the confirmation matches the purchase order. Nothing to do.
+- 🟡 **Amber**: something needs a human look (a short quantity, a price change, or a unit that does not match).
+- 🔴 **Red**: a delay puts a production run at risk. Act on this first.
+
+## How to use it
+
+There are two ways to use the app. A slider in the top right switches between them.
+
+### A. Try it instantly (Test mode, the slider is ON)
+
+1. Open the app in your browser.
+2. Under **Check a confirmation**, click one of the sample buttons (for example **Date slip**). It fills the box with an example email.
+3. Click **Check confirmation**.
+4. Read the coloured result on the right. The matching purchase order and production run highlight in the tables below.
+
+That is the whole loop. The five samples cover a clean match, a delay, a short shipment, an unknown order, and a unit mismatch.
+
+### B. Use your real Gmail (turn the slider OFF)
+
+**One-time prep in Gmail:** create a label called `suppliers` (spelled exactly like that) and apply it to the supplier emails you want checked.
+
+Then, in the app:
+
+1. Turn the **Test** slider OFF (top right).
+2. Click **Connect to Google** and sign in. You only do this once; it stays connected.
+3. Your labelled emails appear in the **Select a supplier email** dropdown. Any attachments (PDF, spreadsheet, CSV) are read automatically, and the orders inside them fill the **Open purchase orders** table.
+4. To load your production schedule, click **Upload document** (top right) and pick your schedule file. It fills the **Production schedule** table.
+5. Pick an email from the dropdown, then click **Check confirmation**. The box border turns green, amber, or red.
+6. If the result is green, a **Send reply** button appears so you can confirm back to the supplier. Tick **Auto-send reply when green** to have it reply on its own.
+
+> **Note:** uploaded documents and email data live only in your browser tab and clear when you refresh or close the page. Your Google connection stays. Nothing is stored on a server.
+
+## Try the full Gmail flow with ready-made examples
+
+The `demo-kit` folder has five example emails, their attachments, and three schedule files, with a short guide (`demo-kit/README.md`). Send them to yourself, label them `suppliers`, and follow the steps above to see one green, one red (a run at risk), and three ambers.
 
 ## Where the AI is and is not trusted
 
-The Claude call does exactly one job: read the messy email and fill in a strict schema (PO number, quantity, unit, price, ship date, plus a confidence level and notes). Structured outputs guarantee the response matches the schema, and the model is told to return null rather than guess. Everything after that is plain TypeScript in `src/lib/reconcile.ts`: the PO lookup, the date math, the dollar deltas, and the risk verdicts. Same inputs, same report, every time. The AI reads, the code judges.
+The AI does one job only: read the messy email and pull out the facts (order number, quantity, unit, price, ship date). Every comparison, date calculation, and risk verdict after that is done by plain, predictable code, not the AI. So the same email always gives the same answer, and a person can explain every result. Two cases are handed to a human on purpose: an order number we do not recognise, and a confirmation measured in pallets when the order is in cans.
 
-Two deliberate human-in-the-loop boundaries: an unknown PO routes to a buyer instead of guessing, and a confirmation in pallets against a PO in cans is flagged rather than auto-converted.
-
-## Run locally
+## For whoever installs it (technical, one-time)
 
 ```
-git clone <this repo>
-cd <repo folder>
 npm install
-cp .env.example .env.local   # then paste your ANTHROPIC_API_KEY
+cp .env.example .env.local     # paste your ANTHROPIC_API_KEY into it
 npm run dev
 ```
 
-Open http://localhost:3000 and click any sample button.
+Open http://localhost:3000. The app works fully in Test mode with just the Anthropic key.
 
-## Optional: Gmail connection
+For the Gmail feature, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.local`. The one-time Google setup is in [docs/GOOGLE-SETUP.md](docs/GOOGLE-SETUP.md). It can be hosted for free on Vercel; add the same three keys there as environment variables.
 
-With `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` set (see docs/GOOGLE-SETUP.md
-for the one-time Google Cloud setup), the dashboard can connect to Gmail, read
-emails under a "suppliers" label, triage them with the AI, read their
-attachments into the purchase order table, and send a confirmation reply for
-green results. Uploaded documents and Gmail data live only in the browser tab
-and are gone on refresh. The demo-kit folder contains five ready-made supplier
-emails, their attachments, and three production schedule files to try the
-whole flow, including one email that references a purchase order that does not
-exist, to show the tool routing to a human instead of guessing.
+## Is it secure?
 
-## Live demo
-
-Coming after deploy. <!-- Founder: paste the Vercel URL here -->
-
-## Trade-offs knowingly taken
-
-- The Gmail connection is connect-and-check, not automatic on arrival. Test mode uses pasted text.
-- Attachments are read as whole documents, no OCR for scanned images.
-- No unit auto-conversion (pallets to cans needs a human).
-- No idempotency on re-sent confirmations, checking twice reports twice.
-- Ingested data is session-only, in the browser tab. The system of record stays your ERP, not this tool.
+Yes, for a demo. Your Gmail sign-in is stored only in your own browser, so no one else can read your email or send on your behalf. The secret keys live on the server, never in the page. Ingested data is never saved to a database. While the app is unverified by Google, only email addresses you add as test users can connect.
 
 ## What the next two weeks would add
 
-- Inbox ingestion via n8n or Zapier so confirmations check themselves on arrival.
-- Confidence thresholds that auto-approve clean, high-confidence matches.
-- ERP write-back to NetSuite or QuickBooks so the PO record updates itself.
-- VIP or iDig depletion data driving reorder points on the same screen.
-- An eval set of 30 real-format emails to measure extraction accuracy before trusting it further.
+- Emails that check themselves automatically the moment they arrive.
+- Auto-approval of clean, high-confidence matches.
+- Writing results back into an ERP like NetSuite or QuickBooks.
+- Sales and depletion data to drive reorder timing.
+- A test set of real emails to measure accuracy before trusting it further.
