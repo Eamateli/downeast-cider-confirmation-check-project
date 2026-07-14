@@ -1,6 +1,5 @@
 # Confirmation Check
 
-**The problem is about can supplies. This app reads supplier emails to prevent production line shortages.**
 
 Suppliers email us to confirm when our printed cans and cartons will arrive. A delay or a short quantity is easy to miss when it is buried in a long email, and we only notice when a production line has nothing to run. This app reads each confirmation, compares it to what we ordered and when we plan to make it, and tells us in plain colours whether anything is wrong.
 
