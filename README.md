@@ -8,7 +8,8 @@ Suppliers email us to confirm when our printed cans and cartons will arrive. A d
 
 This is one slice of a larger supply-chain and manufacturing system. It handles the **Raw Materials and Packaging** corner: checking supplier confirmations for cans, glass, labels, and ingredients. The same idea can be reused across the other areas.
 
-![Where this slice fits in the bigger system](docs/architecture.png)
+![Where this slice fits in the bigger system]<img width="1008" height="509" alt="Pie and Slice" src="https://github.com/user-attachments/assets/d16aa27a-e363-4441-bc67-2519197749a7" />
+
 
 ## Reading the results
 
