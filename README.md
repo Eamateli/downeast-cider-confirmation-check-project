@@ -1,6 +1,6 @@
 # Confirmation Check
 
-In order to prvent production line shortages of cans the app checks supplier emails for order confirmation and issues. 
+In order to prevent production line shortages of cans the app checks supplier emails for order confirmation and issues.
 Suppliers email us to confirm when our printed cans and cartons will arrive. A delay or a short quantity is easy to miss when it is buried in a long email, and we only notice when a production line has nothing to run. This app reads each confirmation, compares it to what we ordered and when we plan to make it, and tells us in plain colours whether anything is wrong.
 
 ## Where this fits in the bigger picture
