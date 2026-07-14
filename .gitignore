@@ -37,6 +37,8 @@ yarn-error.log*
 # local planning notes, not part of the submission
 CLAUDE.md
 docs/*.md
+# but the Gmail setup guide is user-facing and ships with the app
+!docs/GOOGLE-SETUP.md
 
 # vercel
 .vercel
