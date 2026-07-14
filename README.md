@@ -7,7 +7,7 @@ Suppliers email us to confirm when our printed cans and cartons will arrive. A d
 
 This is one slice of a larger supply-chain and manufacturing system. It handles the **Raw Materials and Packaging** corner: checking supplier confirmations for cans, glass, labels, and ingredients. The same idea can be reused across the other areas.
 
-![Where this slice fits in the bigger system] <img width="1008" height="509" alt="Pie and Slice" src="https://github.com/user-attachments/assets/d16aa27a-e363-4441-bc67-2519197749a7" />
+<img width="1008" height="509" alt="Where this slice fits in the bigger system" src="https://github.com/user-attachments/assets/d16aa27a-e363-4441-bc67-2519197749a7" />
 
 
 ## Reading the results
@@ -54,17 +54,55 @@ The `demo-kit` folder has five example emails, their attachments, and three sche
 
 The AI does one job only: read the messy email and pull out the facts (order number, quantity, unit, price, ship date). Every comparison, date calculation, and risk verdict after that is done by plain, predictable code, not the AI. So the same email always gives the same answer, and a person can explain every result. Two cases are handed to a human on purpose: an order number we do not recognise, and a confirmation measured in pallets when the order is in cans.
 
-## For whoever installs it (technical, one-time)
+## Get the code and run it (one-time setup)
+
+You only need this once. It takes about 10 minutes.
+
+**Before you start, install these two free tools** (skip any you already have):
+
+- **Node.js** (version 20 or newer): https://nodejs.org (download, run the installer, click through).
+- **Git**: https://git-scm.com/downloads
+
+**Get your Anthropic key** (this is what powers the AI reading):
+
+1. Go to https://console.anthropic.com and sign in.
+2. Open **API Keys**, click **Create Key**, and copy it (starts with `sk-ant-`).
+3. Open **Billing** and add a small amount of credit (the minimum is plenty; the whole demo costs a few cents).
+
+**Download and start the app.** Open a terminal (on Windows: "Command Prompt";
+on Mac: "Terminal") and run these lines one at a time:
 
 ```
+git clone <paste-the-repo-URL-here>
+cd downeast-cider-test-task
 npm install
-cp .env.example .env.local     # paste your ANTHROPIC_API_KEY into it
+cp .env.example .env.local
+```
+
+Now open the file `.env.local` in a text editor and paste your key after the
+equals sign:
+
+```
+ANTHROPIC_API_KEY=sk-ant-...your key...
+```
+
+Save it, then start the app:
+
+```
 npm run dev
 ```
 
-Open http://localhost:3000. The app works fully in Test mode with just the Anthropic key.
+Open **http://localhost:3000** in your browser. The app works fully in Test
+mode with just the Anthropic key.
 
-For the Gmail feature, also set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in `.env.local`. The one-time Google setup is in [docs/GOOGLE-SETUP.md](docs/GOOGLE-SETUP.md). It can be hosted for free on Vercel; add the same three keys there as environment variables.
+**For the Gmail feature (optional):** also add `GOOGLE_CLIENT_ID` and
+`GOOGLE_CLIENT_SECRET` to `.env.local`. The one-time Google setup is a separate
+guide: [docs/GOOGLE-SETUP.md](docs/GOOGLE-SETUP.md). Restart the app after
+adding them.
+
+**To put it online (optional):** it hosts for free on Vercel. Import the repo,
+and add the same keys (`ANTHROPIC_API_KEY`, and the two `GOOGLE_` keys if using
+Gmail) as environment variables in the Vercel project settings.
 
 ## Is it secure?
 
