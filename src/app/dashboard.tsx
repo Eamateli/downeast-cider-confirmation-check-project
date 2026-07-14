@@ -252,7 +252,9 @@ export default function Dashboard({ pos, schedule }: { pos: PoRow[]; schedule: S
     (async () => {
       for (const email of inbox.emails) {
         for (const att of email.attachments) {
-          const source = `gmail-${att.attachmentId.slice(0, 24)}`;
+          // Key on message + filename: Gmail's attachmentId changes between
+          // fetches, so it would let the same attachment ingest twice.
+          const source = `gmail-${email.id}-${att.filename}`;
           if (processedAttachments.current.has(source)) continue;
           processedAttachments.current.add(source);
           if (cancelled) return;
