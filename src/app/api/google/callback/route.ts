@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { googleClient, saveTokens } from "@/lib/google";
+import { googleClient, setTokenCookie } from "@/lib/google";
 
 // Google redirects here after consent. Exchange the code for tokens, store
 // them in the httpOnly cookie, and land back on the dashboard.
@@ -30,10 +30,13 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${url.origin}/?google=error`);
   }
   const data = await res.json();
-  await saveTokens({
+  // Set the cookie on the redirect response itself so it actually reaches the
+  // browser and the connection survives refreshes.
+  const response = NextResponse.redirect(`${url.origin}/?google=connected`);
+  setTokenCookie(response, {
     access_token: data.access_token,
     refresh_token: data.refresh_token,
     expires_at: Date.now() + data.expires_in * 1000,
   });
-  return NextResponse.redirect(`${url.origin}/?google=connected`);
+  return response;
 }

@@ -1,12 +1,23 @@
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 
 // Minimal Gmail OAuth + API helpers, hand-rolled with fetch. Tokens live in
 // an httpOnly cookie, so there is no database and nothing server-side to
 // clean up. Scopes: read mail + send mail, nothing else.
 
-const TOKEN_COOKIE = "google_tokens";
+export const TOKEN_COOKIE = "google_tokens";
 export const OAUTH_SCOPES =
   "https://www.googleapis.com/auth/gmail.readonly https://www.googleapis.com/auth/gmail.send";
+
+// One place for the cookie options, so the redirect path and the refresh path
+// write an identical, 30-day, httpOnly cookie.
+export const TOKEN_COOKIE_OPTIONS = {
+  httpOnly: true,
+  sameSite: "lax" as const,
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: 60 * 60 * 24 * 30,
+};
 
 export type GoogleTokens = {
   access_token: string;
@@ -20,14 +31,15 @@ export function googleClient(): { id: string; secret: string } | null {
   return id && secret ? { id, secret } : null;
 }
 
+// Set the token cookie directly on a response. Cookies set via the next/headers
+// helper are dropped from NextResponse.redirect(), so the OAuth callback must
+// write to the response object for the login to survive a page refresh.
+export function setTokenCookie(response: NextResponse, tokens: GoogleTokens) {
+  response.cookies.set(TOKEN_COOKIE, JSON.stringify(tokens), TOKEN_COOKIE_OPTIONS);
+}
+
 export async function saveTokens(tokens: GoogleTokens) {
-  (await cookies()).set(TOKEN_COOKIE, JSON.stringify(tokens), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  (await cookies()).set(TOKEN_COOKIE, JSON.stringify(tokens), TOKEN_COOKIE_OPTIONS);
 }
 
 // Returns a valid access token, refreshing once if expired. Null when the
